@@ -4,6 +4,10 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import jwt from "jsonwebtoken";     
 import userRouter from "./routes/userRouter.js";
+import productRouter from "./routes/productRouter.js";
+import riderRouter from "./routes/riderRouter.js";
+import supplierRouter from "./routes/supplierRouter.js";
+import reviewRouter from "./routes/reviewRouter.js";
 
 const app = express();
 app.use(cors())
@@ -43,8 +47,11 @@ mongoose
     console.log("Database connection failed");
   });
 
-  
-app.use("/api/users",userRouter)  
+app.use("/api/users",userRouter)
+app.use("/api/products",productRouter)  
+app.use("/api/riders",riderRouter)  
+app.use("/api/suppliers",supplierRouter)  
+app.use("/api/reviews",reviewRouter)    
 
 app.listen( 5000, 
     ()=>{
