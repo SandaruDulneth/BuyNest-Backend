@@ -22,11 +22,6 @@ const reviewSchema = mongoose.Schema({
         require : true
     },
 
-    orderId :{
-        type : String,
-        reqire : true
-    },
-
     rating : {
         type : Number,
         require : true

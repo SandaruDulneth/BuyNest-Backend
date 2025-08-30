@@ -21,11 +21,11 @@ const supplierSchema = mongoose.Schema({
         required : true
     },
     stock : {
-        type : int,
+        type : Number,
         required : true,
     },
     cost :{
-        type : double,
+        type : Number,
         required : true,
     },
     contactNo :{
