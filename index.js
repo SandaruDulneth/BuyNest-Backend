@@ -1,19 +1,21 @@
-import express from 'express';
-import mongoose from 'mongoose';
-import cors from 'cors';
-import bodyParser from 'body-parser';
-
+import express from "express";
+import mongoose from "mongoose";
+import cors from "cors";
+import bodyParser from "body-parser";
+import jwt from "jsonwebtoken";     
+import userRouter from "./routes/userRouter.js";
 
 const app = express();
 app.use(cors())
 app.use(bodyParser.json())
+
 app.use(
     (req,res,next)=>{
         const tokenString = req.header("Authorization")
         if(tokenString != null){
             const token = tokenString.replace("Bearer ", "")
 
-            jwt.verify(token, "nimna", 
+            jwt.verify(token, "buynest", 
                 (err,decoded)=>{
                     if(decoded != null){
                         req.user = decoded
@@ -26,26 +28,27 @@ app.use(
                     }
                 }
             )
-
-        }else{
+  }else{
             next()
         }
     }
 )
+
+
+mongoose
+  .connect("mongodb+srv://sandaru:1234@clusterstorage.2vezela.mongodb.net/?retryWrites=true&w=majority&appName=ClusterStorage")
+  .then(() => console.log("Connected to the database"))
+  .catch((e) => {
+    console.error(e);
+    console.log("Database connection failed");
+  });
+
+  
+app.use("/api/users",userRouter)  
 
 app.listen( 5000, 
     ()=>{
         console.log('Server is running on port 5000');
     }
 )
-
-mongoose.connect("mongodb+srv://sandaru:1234@clusterstorage.2vezela.mongodb.net/?retryWrites=true&w=majority&appName=ClusterStorage")
-.then(()=>{
-    console.log("Connected to the database")
-}).catch(()=>{
-    console.log("Database connection failed")
-})
-
-
-
 
