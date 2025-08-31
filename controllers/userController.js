@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 
 export async function createUser(req,res){
 
-    //auth
+
     if(req.body.role == "admin"){
         if(req.user!= null){
             if(req.user.role != "admin"){
@@ -20,7 +20,7 @@ export async function createUser(req,res){
             return
         }
     }
-//auth
+
 
   const lastUser = await User.findOne().sort({ userId: -1 }); 
         let generatedUserId = "BYN00001"; 
@@ -74,7 +74,7 @@ export function loginUser(req,res){
                 const isPasswordCorrect = bcrypt.compareSync(password , user.password)
                 if(isPasswordCorrect){
                     const token = jwt.sign(
-                        {
+                        {   userId : user.userId,
                             email : user.email,
                             firstName : user.firstName,
                             lastName : user.lastName,
@@ -100,6 +100,20 @@ export function loginUser(req,res){
     )
     
 }
+export async function getAllUsers(req, res) {
+    try {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Only admins can view all users" });
+        }
+
+
+        const users = await User.find({}, { password: 0 });
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching users", error: error.message });
+    }
+}
+
 export function isAdmin(req){
     if(req.user == null){
         return false
