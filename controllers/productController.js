@@ -57,6 +57,35 @@ export async function getProducts(req, res) {
     }
 }
 
+export async function getProductsByCategory(req, res) {
+    try {
+        const category = req.body.category;
+
+        if (!category) {
+            return res.status(400).json({ message: "Category is required" });
+        }
+        
+        //^...$ → ensures an exact match (not partial like "Snack" matching "Snacks"). "i" → makes it case-insensitive.
+        let products;
+        const query = { categories: { $regex: new RegExp(`^${category}$`, "i") } };
+
+        if (isAdmin(req)) {
+            products = await Product.find(query);
+        } else {
+            products = await Product.find({ ...query, isAvailable: true });
+        }
+
+        res.json(products);
+    } catch (err) {
+        console.error("Category fetch error:", err);
+        res.status(500).json({
+            message: "Failed to get products by category",
+            error: err.message,
+        });
+    }
+}
+
+
 export async function deleteProduct(req, res) {
     if (!isAdmin(req)) {
         res.status(403).json({
