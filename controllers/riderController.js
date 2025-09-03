@@ -8,11 +8,11 @@ export async function addRider(req, res) {
 
     try {
 
-      
 
-
+ 
         const rider = new Rider({
             riderId: req.body.riderId,
+
             email: req.body.email,
             Name: req.body.Name,
             contactNo: req.body.contactNo,
