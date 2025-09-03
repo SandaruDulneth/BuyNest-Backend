@@ -8,23 +8,18 @@ export async function addRider(req, res) {
 
     try {
 
-        const lastRider = await Rider.findOne().sort({ riderId: -1 });
-        let generatedRiderId = "BYNRD00001";
+      
 
-        if (lastRider && lastRider.riderId) {
-            const lastNumber = parseInt(lastRider.riderId.replace("BYNRD", ""));
-            const newNumber = lastNumber + 1;
-            generatedRiderId = "BYNRD" + String(newNumber).padStart(5, "0");
-        }
 
         const rider = new Rider({
-            riderId: generatedRiderId,
+            riderId: req.body.riderId,
             email: req.body.email,
             Name: req.body.Name,
             contactNo: req.body.contactNo,
             vehicleType: req.body.vehicleType,
             status: req.body.status
         });
+
 
         await rider.save();
         res.json({ message: "Rider added successfully", rider });
