@@ -8,6 +8,9 @@ import productRouter from "./routes/productRouter.js";
 import riderRouter from "./routes/riderRouter.js";
 import supplierRouter from "./routes/supplierRouter.js";
 import reviewRouter from "./routes/reviewRouter.js";
+import deliveryRouter from "./routes/deliveryRouter.js";
+import faqRouter from "./routes/faqRouter.js";
+import orderRouter from "./routes/orderRouter.js";
 
 const app = express();
 app.use(cors())
@@ -51,7 +54,10 @@ app.use("/api/users",userRouter)
 app.use("/api/products",productRouter)  
 app.use("/api/riders",riderRouter)  
 app.use("/api/suppliers",supplierRouter)  
-app.use("/api/reviews",reviewRouter)    
+app.use("/api/reviews",reviewRouter)  
+app.use("/api/delivery",deliveryRouter)  
+app.use("/api/faqs",faqRouter)
+app.use("/api/orders",orderRouter)    
 
 app.listen( 5000, 
     ()=>{

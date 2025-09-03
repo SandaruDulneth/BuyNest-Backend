@@ -13,6 +13,12 @@ const supplierSchema = mongoose.Schema({
     email: {
         type: String,
         required: true,
+        require: true
+    },
+    email: {
+        type: String,
+        required: true
+
     },
     Name : {
         type : String,
