@@ -8,13 +8,11 @@ const supplierSchema = mongoose.Schema({
     },
     productId: {
         type: String,
-        require: true,
-        unique : true
+        require: true
     },
     email: {
         type: String,
-        required: true,
-        unique : true
+        required: true
     },
     Name : {
         type : String,
@@ -32,6 +30,10 @@ const supplierSchema = mongoose.Schema({
         type:String,
         required:false
     },
+    date : {
+        type : Date,
+        default : Date.now
+    }
 });
 
 const Supplier = mongoose.model("suppliers", supplierSchema);
