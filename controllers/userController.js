@@ -1,6 +1,6 @@
-import User from "../models/user.js"
-import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import User from "../models/user.js";
 
 export async function createUser(req,res){
 
@@ -60,46 +60,43 @@ export async function createUser(req,res){
     )
 }
 
-export function loginUser(req,res){
-    const email = req.body.email
-    const password = req.body.password
+export function loginUser(req, res) {
+  const { email, password } = req.body;
 
-    User.findOne({email : email}).then(
-        (user)=>{
-            if(user == null){
-                res.status(404).json({
-                    message : "User not found"
-                })
-            }else{
-                const isPasswordCorrect = bcrypt.compareSync(password , user.password)
-                if(isPasswordCorrect){
-                    const token = jwt.sign(
-                        {   userId : user.userId,
-                            email : user.email,
-                            firstName : user.firstName,
-                            lastName : user.lastName,
-                            role : user.role,
-                            img : user.img
-                        },
-                        "buynest"
-                    )
-                    res.json({
-                        token : token,
-                        message : "Login successful",
-                        role : user.role,
-                    })
+  User.findOne({ email }).then((user) => {
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
 
-                }else{
-                    res.status(401).json({
-                        message : "Invalid password",
-                    })
-                }
-            }
+    if (user.isBlocked) {
+      return res.status(403).json({ message: "You are Blocked :)" });
+    }
 
-        }
-    )
-    
+    const isPasswordCorrect = bcrypt.compareSync(password, user.password);
+    if (!isPasswordCorrect) {
+      return res.status(401).json({ message: "Invalid password" });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.userId,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        img: user.img,
+      },
+      "buynest"
+    );
+
+    return res.json({
+      token,
+      message: "Login successful",
+      role: user.role,
+    });
+  });
 }
+
 export async function getAllUsers(req, res) {
     try {
         if (req.user.role !== 'admin') {
@@ -123,3 +120,90 @@ export function isAdmin(req){
     }
     return true
 }
+
+
+
+export async function editUser(req, res) {
+  try {
+    const { userId } = req.params; // /api/users/:userId
+
+    const user = await User.findOne({ userId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // update fields if provided
+    if (req.body.firstName) user.firstName = req.body.firstName;
+    if (req.body.lastName) user.lastName = req.body.lastName;
+    if (req.body.email) user.email = req.body.email;
+    if (req.body.role) user.role = req.body.role;
+
+    // if password is sent → hash it
+    if (req.body.password) {
+      user.password = bcrypt.hashSync(req.body.password, 10);
+    }
+
+    await user.save();
+
+    res.json({
+      message: "User updated successfully",
+    });
+  } catch (err) {
+    res.status(500).json({
+      message: "Failed to update user",
+      error: err.message,
+    });
+  }
+}
+
+
+
+// controllers/userController.js
+export async function toggleBlockUser(req, res) {
+  try {
+    if (!isAdmin(req)) {
+      return res.status(403).json({ message: "Only admins can block/unblock users" });
+    }
+
+    const rawId = String(req.params.userId || "").trim();
+    const userId = rawId.toUpperCase();
+
+    const user = await User.findOne({ userId });
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    if (user.role === "admin") {
+      return res.status(403).json({ message: "You cannot block/unblock an admin" });
+    }
+    if (req.user?.userId === userId) {
+      return res.status(403).json({ message: "You cannot block/unblock yourself" });
+    }
+
+    // If client sent explicit isBlocked, use it; otherwise toggle
+    const desired =
+      typeof req.body?.isBlocked === "boolean" ? req.body.isBlocked : !user.isBlocked;
+
+    // no-op / idempotent response
+    if (user.isBlocked === desired) {
+      const { password, ...sanitized } = user.toObject();
+      return res.status(200).json({
+        message: desired ? "User is already blocked" : "User is already unblocked",
+        user: sanitized,
+      });
+    }
+
+    user.isBlocked = desired;
+    await user.save();
+
+    const { password, ...sanitized } = user.toObject();
+    return res.status(200).json({
+      message: desired ? "User blocked" : "User unblocked",
+      user: sanitized,
+    });
+  } catch (err) {
+    console.error("toggleBlockUser error:", err);
+    return res
+      .status(500)
+      .json({ message: "Failed to update user block status", error: err.message });
+  }
+}
+
