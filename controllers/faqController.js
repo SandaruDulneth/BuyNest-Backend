@@ -6,7 +6,6 @@ export async function getFaqs(req, res) {
     try {
         const faqs = await Faq.find().sort({ faqId: 1 }).lean();
         res.json({
-            count: faqs.length,
             faqs
         });
     } catch (err) {

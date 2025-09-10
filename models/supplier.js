@@ -8,7 +8,8 @@ const supplierSchema = mongoose.Schema({
     },
     productId: {
         type: String,
-        required: true
+        required: true,
+        unique : false
     },
     email: {
         type: String,

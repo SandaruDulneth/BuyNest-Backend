@@ -17,7 +17,7 @@ export async function saveProduct(req, res) {
         }
 
         const product = new Product({
-            productId: req.body.productId,   // 👈 now admin provides manually
+            productId: req.body.productId, 
             name: req.body.name,
             categories: req.body.categories,
             description: req.body.description,
