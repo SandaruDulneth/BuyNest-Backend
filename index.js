@@ -11,9 +11,15 @@ import reviewRouter from "./routes/reviewRouter.js";
 import deliveryRouter from "./routes/deliveryRouter.js";
 import faqRouter from "./routes/faqRouter.js";
 import orderRouter from "./routes/orderRouter.js";
+import dashboardRoutes from "./routes/dashboardRoutes.js";
 
 const app = express();
-app.use(cors())
+app.use(
+  cors({
+    origin: "http://localhost:5173",   // ← your React dev server URL
+    credentials: true,                 // ← allow cookies / Authorization header
+  })
+);
 app.use(bodyParser.json())
 
 app.use(
@@ -58,10 +64,11 @@ app.use("/api/reviews",reviewRouter)
 app.use("/api/delivery",deliveryRouter)  
 app.use("/api/faqs",faqRouter)
 app.use("/api/orders",orderRouter)    
-
+app.use("/api/dashboard", dashboardRoutes)
 app.listen( 5000, 
     ()=>{
         console.log('Server is running on port 5000');
     }
 )
 
+ 

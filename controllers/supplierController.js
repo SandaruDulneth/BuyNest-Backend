@@ -25,9 +25,26 @@ export async function addSupplier(req, res) {
         .json({ message: "Product not found with given productId" });
     }
 
+
+     const numPart = (req.body.supplierId || "").trim();
+
+         if (String(parseInt(numPart, 10)) !== numPart) {
+          return res.status(400).json({ message: "supplierId must be digits only" });
+        }
+        const newsupplierId = "BYNSP" + numPart.padStart(5, "0");
+
+        const existing = await Supplier.findOne({ productId: req.body.supplierId });
+        if (existing) {
+            return res.status(400).json({ message: "psupplierId already exists" });
+        }
+        const phone = String(req.body.contactNo || '').trim();
+        if (!/^\d{10}$/.test(phone)) {
+         return res.status(400).json({ message: "Phone number must be exactly 10 digits" });
+        }
+
     // Create supplier with the user-provided supplierId
     const supplier = new Supplier({
-      supplierId: supplierId.trim(),
+      supplierId: newsupplierId,
       productId,
       email,
       Name,

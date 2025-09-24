@@ -14,11 +14,9 @@ const faqSchema = mongoose.Schema({
         type: String,
         require: true,
     },
+    
  
-
-
 });
 
 const Faq = mongoose.model("faqs", faqSchema);
-
 export default Faq;

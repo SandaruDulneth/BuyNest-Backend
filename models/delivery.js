@@ -8,19 +8,19 @@ const deliverySchema = mongoose.Schema({
     },
     riderId: {
         type: String,
-        require: true,
-        unique : true
     },
     orderId: {
         type: String,
         require: true,
-        unique : true
+        
     },
+     phone: { type: String 
+        
+     },
     date : {
         type : Date,
         default : Date.now
     }
-
 });
 
 const Delivery = mongoose.model("deliveries", deliverySchema);

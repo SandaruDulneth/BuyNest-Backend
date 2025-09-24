@@ -9,7 +9,6 @@ export async function createOrder(req, res) {
         });
         return;
     }
-
     const orderInfo = req.body;
 
     if (orderInfo.name == null) {
@@ -22,7 +21,7 @@ export async function createOrder(req, res) {
     const lastOrder = await Order.find().sort({ date: -1 }).limit(1);
 
     if (lastOrder.length > 0) {
-        const lastOrderId = lastOrder[0].orderId; //"CBC00551"
+        const lastOrderId = lastOrder[0].orderId; 
 
         const lastOrderNumberString = lastOrderId.replace("BYNOD", "");
         const lastOrderNumber = parseInt(lastOrderNumberString);
@@ -81,6 +80,7 @@ export async function createOrder(req, res) {
             address: orderInfo.address,
             phone: orderInfo.phone,
             products: products,
+            deliveryMethod : orderInfo.deliveryMethod,
             labelledTotal: labelledTotal,
             total: total,
         });
@@ -88,11 +88,14 @@ export async function createOrder(req, res) {
         res.json({
             message: "Order created successfully",
             order: createdOrder,
+            orderId:orderId,
+            phone : orderInfo.phone
         });
     } catch (err) {
         res.status(500).json({
             message: "Failed to create order",
             error: err,
+
         });
     }
 }

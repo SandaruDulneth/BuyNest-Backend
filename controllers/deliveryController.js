@@ -17,12 +17,6 @@ export async function getDeliveries(req, res) {
 }
 
 export async function createDelivery(req, res) {
-    if (!isAdmin(req)) {
-        return res.status(403).json({
-            message: "You are not authorized to create deliveries"
-        });
-    }
-
     try {
 
         let newDeliveryId = "BYNDEL00001";
@@ -35,7 +29,7 @@ export async function createDelivery(req, res) {
             newDeliveryId = "BYNDEL" + padded;
         }
 
-        const { riderId, orderId } = req.body;
+           const { riderId, orderId, phone } = req.body;
 
 
         const existingDelivery = await Delivery.findOne({ orderId });
@@ -49,6 +43,7 @@ export async function createDelivery(req, res) {
             deliveryId: newDeliveryId,
             riderId,
             orderId,
+            phone     
         });
 
         res.status(201).json({
@@ -127,7 +122,7 @@ export async function updateDelivery(req, res) {
         );
 
         res.json({
-            message: "Delivery updated successfully",
+            message: "Rider assign successfully",
             delivery: updatedDelivery
         });
     } catch (err) {

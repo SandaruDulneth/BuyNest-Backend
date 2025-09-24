@@ -31,10 +31,7 @@ export async function createUser(req,res){
             const newNumber = lastNumber + 1;
             generatedUserId = "BYN" + String(newNumber).padStart(5, "0"); 
         }
-
-
-
-
+        
     const hashedPassword = bcrypt.hashSync(req.body.password, 10)
 
     const user = new User({
@@ -111,6 +108,20 @@ export async function getAllUsers(req, res) {
     }
 }
 
+export function getUser(req, res) {
+  if (!req.user) {
+    return res.status(403).json({
+      message: "You are not authorized to view user details",
+    });
+  }
+  res.json({
+    id: req.user.id,
+    email: req.user.email,
+    role: req.user.role,
+    name: req.user.name,  
+  });
+}
+
 export function isAdmin(req){
     if(req.user == null){
         return false
@@ -132,13 +143,12 @@ export async function editUser(req, res) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // update fields if provided
+
     if (req.body.firstName) user.firstName = req.body.firstName;
     if (req.body.lastName) user.lastName = req.body.lastName;
     if (req.body.email) user.email = req.body.email;
     if (req.body.role) user.role = req.body.role;
 
-    // if password is sent → hash it
     if (req.body.password) {
       user.password = bcrypt.hashSync(req.body.password, 10);
     }

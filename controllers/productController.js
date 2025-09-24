@@ -11,13 +11,21 @@ export async function saveProduct(req, res) {
             return res.status(400).json({ message: "productId is required" });
         }
 
+           const numPart = (req.body.productId || "").trim();
+
+         if (String(parseInt(numPart, 10)) !== numPart) {
+          return res.status(400).json({ message: "productId must be digits only" });
+        }
+        const newProductId = "BYNPD" + numPart.padStart(5, "0");
+
         const existing = await Product.findOne({ productId: req.body.productId });
         if (existing) {
             return res.status(400).json({ message: "productId already exists" });
         }
 
+
         const product = new Product({
-            productId: req.body.productId, 
+            productId: newProductId, 
             name: req.body.name,
             categories: req.body.categories,
             description: req.body.description,
@@ -77,7 +85,7 @@ export async function getProductsByCategory(req, res) {
             return res.status(400).json({ message: "Category is required" });
         }
         
-        //^...$ → ensures an exact match (not partial like "Snack" matching "Snacks"). "i" → makes it case-insensitive.
+       
         let products;
         const query = { categories: { $regex: new RegExp(`^${category}$`, "i") } };
 
