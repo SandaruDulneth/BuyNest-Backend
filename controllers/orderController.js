@@ -15,13 +15,12 @@ export async function createOrder(req, res) {
         orderInfo.name = req.user.firstName + " " + req.user.lastName;
     }
 
-
     let orderId = "BYOD00001";
 
     const lastOrder = await Order.find().sort({ date: -1 }).limit(1);
 
     if (lastOrder.length > 0) {
-        const lastOrderId = lastOrder[0].orderId; 
+        const lastOrderId = lastOrder[0].orderId;
 
         const lastOrderNumberString = lastOrderId.replace("BYNOD", "");
         const lastOrderNumber = parseInt(lastOrderNumberString);
@@ -56,6 +55,16 @@ export async function createOrder(req, res) {
                 });
                 return;
             }
+            // ✅ check stock availability
+            if (item.stock < orderInfo.products[i].qty) {
+                res.status(400).json({
+                    message:
+                        "Not enough stock for productId " +
+                        orderInfo.products[i].productId,
+                });
+                return;
+            }
+
             products[i] = {
                 productInfo: {
                     productId: item.productId,
@@ -73,6 +82,19 @@ export async function createOrder(req, res) {
             labelledTotal += item.labelledPrice * orderInfo.products[i].qty;
         }
 
+<<<<<<< HEAD
+        const order = new Order({
+            orderId: orderId,
+            email: req.user.email,
+            name: orderInfo.name,
+            address: orderInfo.address,
+            phone: orderInfo.phone,
+            products: products,
+            deliveryMethod: orderInfo.deliveryMethod,
+            labelledTotal: labelledTotal,
+            total: total,
+        });
+=======
  // inside createOrder
 const order = new Order({
     orderId: orderId,
@@ -87,21 +109,31 @@ const order = new Order({
     total: orderInfo.total ?? total,
 });
 
+>>>>>>> 906c239fa982b0a6d89a8b8a0803318a5befa6bd
         const createdOrder = await order.save();
+
+        // ✅ decrement stock for each ordered product
+        for (const p of orderInfo.products) {
+            await Product.updateOne(
+                { productId: p.productId },
+                { $inc: { stock: -p.qty } }
+            );
+        }
+
         res.json({
             message: "Order created successfully",
             order: createdOrder,
-            orderId:orderId,
-            phone : orderInfo.phone
+            orderId: orderId,
+            phone: orderInfo.phone,
         });
     } catch (err) {
         res.status(500).json({
             message: "Failed to create order",
             error: err,
-
         });
     }
 }
+
 export async function getOrders(req, res) {
     if (req.user == null) {
         res.status(403).json({
@@ -113,7 +145,7 @@ export async function getOrders(req, res) {
         if (req.user.role == "admin") {
             const orders = await Order.find();
             res.json(orders);
-        }else{
+        } else {
             const orders = await Order.find({ email: req.user.email });
             res.json(orders);
         }
@@ -134,27 +166,27 @@ export async function getMyOrders(req, res) {
     }
 }
 
-
-
-export async function updateOrderStatus(req,res){
+export async function updateOrderStatus(req, res) {
     if (!isAdmin(req)) {
         res.status(403).json({
             message: "You are not authorized to update order status",
         });
         return;
     }
-    try{
+    try {
         const orderId = req.params.orderId;
         const status = req.params.status;
 
         await Order.updateOne(
             {
-                orderId: orderId
+                orderId: orderId,
             },
             {
-                status : status
+                status: status,
             }
         );
+<<<<<<< HEAD
+=======
          // ✅ If order delivered/completed, mark its delivery as completed
        if (status === "delivered" || status === "completed") {
           const Delivery = (await import("../models/delivery.js")).default;
@@ -164,18 +196,16 @@ export async function updateOrderStatus(req,res){
            );
        }
 
+>>>>>>> 906c239fa982b0a6d89a8b8a0803318a5befa6bd
 
         res.json({
             message: "Order status updated successfully",
         });
-
-    }catch(e){
+    } catch (e) {
         res.status(500).json({
             message: "Failed to update order status",
             error: e,
         });
         return;
     }
-
 }
-

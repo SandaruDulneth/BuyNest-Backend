@@ -65,6 +65,24 @@ export async function getProducts(req, res) {
     }
 }
 
+export async function searchProducts(req, res) {
+  try {
+    const query = req.query.query || "";   // 👈 match frontend
+    if (!query) return res.json([]);
+
+    const searchRegex = new RegExp(query, "i");
+
+    const products = isAdmin(req)
+      ? await Product.find({ name: searchRegex })
+      : await Product.find({ name: searchRegex, isAvailable: true });
+
+    res.json(products);
+  } catch (err) {
+    console.error("Search error:", err);
+    res.status(500).json({ message: "Search failed", error: err.message });
+  }
+}
+
 export const getProductById = async (req, res) => {
   try {
     const product = await Product.findById(req.params.productId);
