@@ -20,7 +20,11 @@ const deliverySchema = mongoose.Schema({
     date : {
         type : Date,
         default : Date.now
-    }
+    },
+      status: {                 // ✅ NEW
+       type: String,
+       default: "pending"
+  }
 });
 
 const Delivery = mongoose.model("deliveries", deliverySchema);
