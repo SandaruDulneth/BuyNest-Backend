@@ -12,6 +12,8 @@ import deliveryRouter from "./routes/deliveryRouter.js";
 import faqRouter from "./routes/faqRouter.js";
 import orderRouter from "./routes/orderRouter.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
+import dotenv from "dotenv";
+dotenv.config();
 
 const app = express();
 app.use(
