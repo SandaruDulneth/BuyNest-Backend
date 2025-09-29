@@ -8,11 +8,9 @@ import Rider from "../models/rider.js";
 
 function daysAgo(n) {
   const d = new Date();
-  d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - n);
   return d;
 }
-
 
 export async function getTopCustomers(req, res) {
   try {
