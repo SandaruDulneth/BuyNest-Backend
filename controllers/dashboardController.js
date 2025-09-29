@@ -5,12 +5,112 @@ import Supplier from "../models/supplier.js";
 import { isAdmin } from "./userController.js";
 import Rider from "../models/rider.js";
 
+
 function daysAgo(n) {
   const d = new Date();
   d.setHours(0, 0, 0, 0);
   d.setDate(d.getDate() - n);
   return d;
 }
+
+
+export async function getTopCustomers(req, res) {
+  try {
+  
+    const result = await Order.aggregate([
+      {
+        // group by the unique customer identifier
+        $group: {
+          _id: "$email",                 // or "$phone" or "$name" if that's unique
+          name: { $first: "$name" },     // keep their display name
+          orders: { $sum: 1 },
+        },
+      },
+      { $match: { orders: { $gt: 3 } } }, // only customers with >3 orders
+      { $sort: { orders: -1 } },
+      {
+        $project: {
+          _id: 0,
+          customer: "$name",
+          orders: 1,
+        },
+      },
+    ]);
+
+    res.json(result);
+  } catch (err) {
+    console.error("getTopCustomers error", err);
+    res.status(500).json({ message: err.message });
+  }
+}
+
+export async function getUserRegistrations(req, res) {
+  try {
+   // if (!isAdmin(req)) {
+     // return res.status(403).json({ message: "Only admins can view dashboard" });
+   // }
+
+    // query params: view = day | week | month
+    const view = req.query.view || "day";
+    const DAYS = 30; // default range
+    const start = daysAgo(DAYS - 1);
+
+    let groupStage = {};
+    let projectKey = "";
+    let format = "";
+
+    if (view === "week") {
+      groupStage = {
+        y: { $year: "$date" },
+        w: { $isoWeek: "$date" },
+      };
+      projectKey = {
+        $dateFromParts: { isoWeekYear: "$_id.y", isoWeek: "$_id.w" },
+      };
+      format = "%G-W%V";
+    } else if (view === "month") {
+      groupStage = {
+        y: { $year: "$date" },
+        m: { $month: "$date" },
+      };
+      projectKey = {
+        $dateFromParts: { year: "$_id.y", month: "$_id.m", day: 1 },
+      };
+      format = "%Y-%m";
+    } else {
+      groupStage = {
+        y: { $year: "$date" },
+        m: { $month: "$date" },
+        d: { $dayOfMonth: "$date" },
+      };
+      projectKey = {
+        $dateFromParts: { year: "$_id.y", month: "$_id.m", day: "$_id.d" },
+      };
+      format = "%Y-%m-%d";
+    }
+
+    const agg = await User.aggregate([
+      { $match: { date: { $gte: start } } },
+      { $group: { _id: groupStage, count: { $sum: 1 } } },
+      {
+        $project: {
+          _id: 0,
+          label: {
+            $dateToString: { format, date: projectKey },
+          },
+          count: 1,
+        },
+      },
+      { $sort: { label: 1 } },
+    ]);
+
+    res.json(agg);
+  } catch (err) {
+    console.error("getUserRegistrations error", err);
+    res.status(500).json({ message: err.message });
+  }
+}
+
 
 
 export async function getOverview(req, res) {

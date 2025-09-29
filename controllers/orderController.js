@@ -82,19 +82,6 @@ export async function createOrder(req, res) {
             labelledTotal += item.labelledPrice * orderInfo.products[i].qty;
         }
 
-<<<<<<< HEAD
-        const order = new Order({
-            orderId: orderId,
-            email: req.user.email,
-            name: orderInfo.name,
-            address: orderInfo.address,
-            phone: orderInfo.phone,
-            products: products,
-            deliveryMethod: orderInfo.deliveryMethod,
-            labelledTotal: labelledTotal,
-            total: total,
-        });
-=======
  // inside createOrder
 const order = new Order({
     orderId: orderId,
@@ -105,11 +92,10 @@ const order = new Order({
     products: products,
     deliveryMethod: orderInfo.deliveryMethod,
     labelledTotal: labelledTotal,
-    // ✅ use total from client if provided (includes delivery fee)
+    // use total from client if provided (includes delivery fee)
     total: orderInfo.total ?? total,
 });
 
->>>>>>> 906c239fa982b0a6d89a8b8a0803318a5befa6bd
         const createdOrder = await order.save();
 
         // ✅ decrement stock for each ordered product
@@ -185,9 +171,7 @@ export async function updateOrderStatus(req, res) {
                 status: status,
             }
         );
-<<<<<<< HEAD
-=======
-         // ✅ If order delivered/completed, mark its delivery as completed
+         //  If order delivered/completed, mark its delivery as completed
        if (status === "delivered" || status === "completed") {
           const Delivery = (await import("../models/delivery.js")).default;
            await Delivery.updateOne(
@@ -196,7 +180,6 @@ export async function updateOrderStatus(req, res) {
            );
        }
 
->>>>>>> 906c239fa982b0a6d89a8b8a0803318a5befa6bd
 
         res.json({
             message: "Order status updated successfully",
