@@ -118,7 +118,7 @@ export async function getOverview(req, res) {
     }
 
     const DAYS = 12;
-    const start = daysAgo(DAYS - 1);
+    const start = daysAgo(DAYS - 1); // Last date for current range, should be Sep 28
     const prevStart = daysAgo(DAYS * 2 - 1);
     const prevEnd = daysAgo(DAYS);
     const ACTIVE_ORDERS = { status: { $nin: ["cancelled"] } };
@@ -183,7 +183,6 @@ export async function getOverview(req, res) {
       deltaReturns: 0,
     };
 
-   
     const seriesAgg = await Order.aggregate([
       { $match: { ...ACTIVE_ORDERS, date: { $gte: start } } },
       {
@@ -213,6 +212,7 @@ export async function getOverview(req, res) {
       { $sort: { dayKey: 1 } },
     ]);
 
+    // Adjust the days for displaying the last date (Sep 28)
     const days = [];
     for (let i = DAYS - 1; i >= 0; i--) {
       const dt = daysAgo(i);
@@ -272,6 +272,7 @@ export async function getOverview(req, res) {
     return res.status(500).json({ message: "Failed to build dashboard", error: err.message });
   }
 }
+
 
 
 export async function getTopProducts(req, res) {

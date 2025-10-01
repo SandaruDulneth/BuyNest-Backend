@@ -233,8 +233,9 @@ const transport = nodemailer.createTransport({
     port: 587,
     secure: false,
     auth: {
-        user: "mihisaragrocery@gmail.com",
-        pass: "luailozgfpgsajzn"   
+            user: "mihisaragrocery@gmail.com",
+        pass: "luailozgfpgsajzn" 
+        
     }
 })
 
@@ -422,10 +423,21 @@ export async function loginWithGoogle(req,res){
     const user = await User.findOne({
         email: response.data.email
     })
+
+    const lastUser = await User.findOne().sort({ userId: -1 }); 
+    let generatedUserId = "BYN00001"; 
+
+    if (lastUser && lastUser.userId) {
+        const lastUserId = lastUser.userId;
+        const lastNumber = parseInt(lastUserId.replace("BYN", ""));
+        const newNumber = lastNumber + 1;
+        generatedUserId = "BYN" + String(newNumber).padStart(5, "0"); 
+    }
     
     if(user == null){
         const newUser = new User(
             {
+                userId : generatedUserId,
                 email: response.data.email,
                 firstName: response.data.given_name,
                 lastName: response.data.family_name,
