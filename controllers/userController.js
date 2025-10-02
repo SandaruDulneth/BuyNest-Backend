@@ -4,6 +4,9 @@ import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 import OTP from "../models/otp.js";
 import nodemailer from "nodemailer"
+import dotenv from "dotenv";
+dotenv.config();
+
 
 export async function createUser(req, res) {
     if (req.body.role == "admin") {
@@ -233,9 +236,8 @@ const transport = nodemailer.createTransport({
     port: 587,
     secure: false,
     auth: {
-            user: "mihisaragrocery@gmail.com",
-        pass: "luailozgfpgsajzn" 
-        
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS
     }
 })
 
@@ -266,7 +268,7 @@ export async function sendOTP(req,res){
 
     
     const message = {
-        from : "sdulneth20@gmail.com",
+        from : process.env.MAIL_USER,
         to: email,
         subject : "Resetting password for Buynest.",
         text : "This your password reset OTP : " + randomOTP
@@ -338,7 +340,6 @@ export async function resetPassword(req,res){
 
 
 
-
 export async function updateUserProfile(req, res) {
   try {
     const { userId } = req.params;
@@ -403,6 +404,8 @@ export async function updateUserProfile(req, res) {
     });
   }
 }
+
+
 
 export async function loginWithGoogle(req,res){
     const token = req.body.accessToken;
