@@ -18,7 +18,7 @@ dotenv.config();
 const app = express();
 app.use(
   cors({
-    origin: "http://localhost:5173",   // ← your React dev server URL
+    origin: process.env.FRONTENDURL,   // ← your React dev server URL
     credentials: true,                 // ← allow cookies / Authorization header
   })
 );
@@ -30,7 +30,7 @@ app.use(
         if(tokenString != null){
             const token = tokenString.replace("Bearer ", "")
 
-            jwt.verify(token, "buynest", 
+            jwt.verify(token, process.env.JWTKEY, 
                 (err,decoded)=>{
                     if(decoded != null){
                         req.user = decoded
@@ -51,7 +51,7 @@ app.use(
 
 
 mongoose
-  .connect("mongodb+srv://sandaru:1234@clusterstorage.2vezela.mongodb.net/?retryWrites=true&w=majority&appName=ClusterStorage")
+  .connect(process.env.MONGODB_URL)
   .then(() => console.log("Connected to the database"))
   .catch((e) => {
     console.error(e);
