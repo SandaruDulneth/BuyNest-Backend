@@ -1,3 +1,4 @@
+
 import bcrypt from "bcrypt";
 import axios from "axios";
 import jwt from "jsonwebtoken";
@@ -132,6 +133,7 @@ export function getUser(req, res) {
     name: req.user.name,  
   });
 }
+
 
 export function isAdmin(req){
     if(req.user == null){
