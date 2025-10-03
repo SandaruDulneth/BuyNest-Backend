@@ -25,6 +25,7 @@ export async function createUser(req, res) {
             return;
         }
     }
+
     // Check if the email already exists
     const existingUser = await User.findOne({ email: req.body.email });
     if (existingUser) {
@@ -104,7 +105,6 @@ export function loginUser(req, res) {
     });
   });
 }
-
 
 export async function getAllUsers(req, res) {
     try {
