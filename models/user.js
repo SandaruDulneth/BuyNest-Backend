@@ -54,6 +54,12 @@ const userSchema = mongoose.Schema({
         required : false,
         default : "https://avatar.iran.liara.run/public/boy?username=Ash"
     },
+    
+    date : {
+        type : Date,
+        default : Date.now
+    }
+
 
 });
 
