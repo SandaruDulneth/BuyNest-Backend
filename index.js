@@ -19,7 +19,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app); // ✅ create HTTP server for socket.io
+const server = http.createServer(app); //  create HTTP server for socket.io
 
 /* ---------------- Socket.IO setup ---------------- */
 const io = new Server(server, {
@@ -44,30 +44,16 @@ io.on("connection", (socket) => {
 /* ---------------- Middlewares ---------------- */
 app.use(
   cors({
-    origin: process.env.FRONTENDURL,   // ← your React dev server URL
-    credentials: true,                 // ← allow cookies / Authorization header
+    origin: process.env.FRONTENDURL, // React dev server
+    credentials: true, // allow cookies / headers
   })
 );
 app.use(bodyParser.json());
 
-            jwt.verify(token, process.env.JWTKEY, 
-                (err,decoded)=>{
-                    if(decoded != null){
-                        req.user = decoded
-                        next()
-                    }else{
-                        console.log("invalid token")
-                        res.status(403).json({
-                            message : "Invalid token"
-                        })
-                    }
-                }
-            )
-  }else{
-            next()
-        }
-    }
-)
+app.use((req, res, next) => {
+  const tokenString = req.header("Authorization");
+  if (tokenString != null) {
+    const token = tokenString.replace("Bearer ", "");
 
     jwt.verify(token, process.env.JWTKEY, (err, decoded) => {
       if (decoded != null) {
@@ -90,7 +76,7 @@ mongoose
   .connect(
     process.env.MONGODB_URL
   )
-  .then(() => console.log("✅ Connected to the database"))
+  .then(() => console.log("Connected to the database"))
   .catch((e) => {
     console.error(e);
     console.log("❌ Database connection failed");
