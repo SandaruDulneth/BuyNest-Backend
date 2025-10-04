@@ -1,5 +1,6 @@
 import Delivery from "../models/delivery.js";
 import {isAdmin} from "./userController.js";
+import Rider from "../models/rider.js";
 
 export async function getActiveRiders(req, res) {
     try {
