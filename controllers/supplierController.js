@@ -1,25 +1,31 @@
 import Supplier from "../models/supplier.js";
 import Product from "../models/product.js";
-import nodemailer from "nodemailer";
 import { isAdmin } from "./userController.js";
+import sgMail from "@sendgrid/mail";
 
-// ✅ helper for email
-async function sendMail({ to, subject, html }) {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.MAIL_USER,
-      pass: process.env.MAIL_PASS,
-    },
-  });
+// initialize once at module load
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
-  return transporter.sendMail({
-    from: process.env.MAIL_USER,
+
+export async function sendMail({ to, subject, html }) {
+  const from = process.env.SENDGRID_FROM ; // must be verified sender in SendGrid
+
+  const msg = {
     to,
+    from,
     subject,
     html,
-  });
+    // plain-text fallback → improves deliverability
+    text: html.replace(/<br\s*\/?>/gi, "\n").replace(/<[^>]+>/g, "").trim(),
+  };
+
+  const [resp] = await sgMail.send(msg);
+  if (resp.statusCode !== 202) {
+    throw new Error(`SendGrid failed with status ${resp.statusCode}`);
+  }
+  return resp;
 }
+
 
 // ✅ Add Supplier
 export async function addSupplier(req, res) {
@@ -180,13 +186,58 @@ export async function notifySupplier(req, res) {
     }
 
     const msg = `
-      <p>Dear ${supplier.Name},</p>
-      <p>The product <b>${product.name}</b> (ID: ${product.productId}) is running LOW/OUT of stock.</p>
-      <p>Current stock: ${product.stock}</p>
-      <p>Please arrange resupply at the earliest.</p>
-      <br/>
-      <p>Thank you,<br/>Inventory Management System</p>
-    `;
+  <div style="
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    background-color: #f8fafc;
+    padding: 20px;
+    border-radius: 10px;
+    color: #333;
+    max-width: 600px;
+    margin: auto;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  ">
+   
+    <div style="text-align: center; margin-bottom: 20px;">
+      <h2 style="color: #059669; margin: 0;">BuyNest Inventory Alert</h2>
+      <p style="color: #64748b; font-size: 14px; margin-top: 4px;">Automated Supplier Notification</p>
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 16px 0;" />
+    </div>
+
+   
+    <p>Dear <strong>${supplier.Name}</strong>,</p>
+    <p style="font-size: 15px; line-height: 1.6;">
+      This is an automated notice from the <b>BuyNest Inventory System</b>.
+      The following product has reached a low stock level:
+    </p>
+
+   
+    <div style="
+      background-color: #ecfdf5;
+      border-left: 4px solid #10b981;
+      padding: 12px 16px;
+      margin: 16px 0;
+      border-radius: 6px;
+    ">
+      <p style="margin: 4px 0;"><b>Product Name:</b> ${product.name}</p>
+      <p style="margin: 4px 0;"><b>Product ID:</b> ${product.productId}</p>
+      <p style="margin: 4px 0; color: #b91c1c;"><b>Current Stock:</b> ${product.stock}</p>
+    </div>
+
+    <p style="font-size: 15px; line-height: 1.6;">
+      Please arrange a <b>resupply</b> at the earliest convenience to avoid stock-out situations.
+      Timely restocking helps ensure uninterrupted order fulfillment and smooth operations.
+    </p>
+
+  
+    <div style="margin-top: 24px; text-align: center; font-size: 13px; color: #64748b;">
+      <hr style="border: none; border-top: 1px solid #e2e8f0; margin-bottom: 12px;" />
+      <p style="margin: 0;">Thank you,</p>
+      <p style="font-weight: 600; color: #059669; margin: 4px 0;">BuyNest Inventory Management System</p>
+      <p style="margin: 0;">Efficient. Reliable. Connected.</p>
+    </div>
+  </div>
+`;
+
 
     await sendMail({
       to: supplier.email,

@@ -4,7 +4,7 @@ import axios from "axios";
 import jwt from "jsonwebtoken";
 import User from "../models/user.js";
 import OTP from "../models/otp.js";
-import nodemailer from "nodemailer"
+import sgMail from "@sendgrid/mail";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -232,69 +232,74 @@ export async function toggleBlockUser(req, res) {
 
 
 /////////////////////////////////////////
-const transport = nodemailer.createTransport({
-    service: 'gmail',
-    host : 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-        user: process.env.MAIL_USER,
-        pass: process.env.MAIL_PASS
-    }
-})
 
-export async function sendOTP(req,res){
 
-    const randomOTP = Math.floor(100000 + Math.random() * 900000);
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+export async function sendOTP(req, res) {
+  try {
     const email = req.body.email;
-    if(email == null){
-        res.status(400).json({
-            message: "Email is required"
-        });
-        return;
-    
-    }
-    const user = await User.findOne({
-        email : email
-    })
-    if(user == null){
-        res.status(404).json({
-            message:"User not found"
-        })
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
     }
 
-    //delete all otps
-    await OTP.deleteMany({
-        email: email
-    })
-
-    
-    const message = {
-        from : process.env.MAIL_USER,
-        to: email,
-        subject : "Resetting password for Buynest.",
-        text : "This your password reset OTP : " + randomOTP
+ 
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
-    const otp = new OTP({
-        email : email,
-        otp : randomOTP
-    })
-    await otp.save()
-    transport.sendMail(message,(error,info)=>{
-            if(error){
-                res.status(500).json({
-                    message: "Failed to send OTP",
-                    error: error
-                });
-            }else{
-                res.json({
-                    message: "OTP sent successfully",
-                    otp: randomOTP
-                });
-            }
-        }
-    )
+   
+    const randomOTP = Math.floor(100000 + Math.random() * 900000);
+    await OTP.deleteMany({ email });
+
+   
+    const otp = new OTP({ email, otp: randomOTP });
+    await otp.save();
+
+ 
+    const msg = {
+      to: email,
+      from: process.env.SENDGRID_FROM, 
+      subject: "Resetting password for BuyNest",
+      html: `
+        <div style="font-family: Arial, sans-serif; color: #333;">
+          <h2>BuyNest</h2>
+          <p>This is your password reset OTP:</p>
+          <h1 style="color: #4CAF50; letter-spacing: 2px;">${randomOTP}</h1>
+          <p>Please do not share this code with anyone.</p>
+          <br />
+          <p>Thanks,<br/>The BuyNest Team</p>
+        </div>
+      `,
+     
+      text: `Your BuyNest OTP is: ${randomOTP}. Please don't share this code.`,
+    };
+
+  
+    const [response] = await sgMail.send(msg);
+
+    if (response.statusCode === 202) {
+      console.log(" Email sent successfully to:", email);
+      return res.status(200).json({
+        message: "OTP sent successfully",
+        otp: randomOTP, 
+      });
+    } else {
+      console.error(" Unexpected SendGrid response:", response.statusCode);
+      return res.status(500).json({
+        message: "Failed to send OTP - unexpected response",
+        statusCode: response.statusCode,
+      });
+    }
+  } catch (err) {
+    console.error(" Error sending OTP:", err);
+    return res.status(500).json({
+      message: "Failed to send OTP",
+      error: err.message,
+    });
+  }
 }
 
 
