@@ -383,7 +383,9 @@ export async function updateUserProfile(req, res) {
         role: user.role,
         img: user.img,
       },
+
        process.env.JWTKEY
+
     );
 
     res.json({
@@ -459,7 +461,9 @@ export async function loginWithGoogle(req,res){
                 role: newUser.role,
                 img: newUser.img
             },
+
               process.env.JWTKEY
+
         )
         res.json({
             message: "Login successful",

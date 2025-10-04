@@ -44,16 +44,30 @@ io.on("connection", (socket) => {
 /* ---------------- Middlewares ---------------- */
 app.use(
   cors({
-    origin: process.env.FRONTENDURL, // React dev server
-    credentials: true, // allow cookies / headers
+    origin: process.env.FRONTENDURL,   // ← your React dev server URL
+    credentials: true,                 // ← allow cookies / Authorization header
   })
 );
 app.use(bodyParser.json());
 
-app.use((req, res, next) => {
-  const tokenString = req.header("Authorization");
-  if (tokenString != null) {
-    const token = tokenString.replace("Bearer ", "");
+            jwt.verify(token, process.env.JWTKEY, 
+                (err,decoded)=>{
+                    if(decoded != null){
+                        req.user = decoded
+                        next()
+                    }else{
+                        console.log("invalid token")
+                        res.status(403).json({
+                            message : "Invalid token"
+                        })
+                    }
+                }
+            )
+  }else{
+            next()
+        }
+    }
+)
 
     jwt.verify(token, process.env.JWTKEY, (err, decoded) => {
       if (decoded != null) {
