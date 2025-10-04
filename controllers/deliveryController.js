@@ -1,6 +1,21 @@
 import Delivery from "../models/delivery.js";
 import {isAdmin} from "./userController.js";
 
+export async function getActiveRiders(req, res) {
+    try {
+        // active riders
+        const riders = await Rider.find({ status: true }).lean();
+        res.json(riders);
+    } catch (err) {
+        res.status(500).json({
+            message: "Failed to fetch active riders",
+            error: err.message,
+        });
+    }
+}
+
+
+
 export async function getDeliveries(req, res) {
     try {
         const deliveries = await Delivery.find().sort({ date: -1 }).lean();
