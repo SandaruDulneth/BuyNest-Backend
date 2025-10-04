@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import LocationSession from "../models/LocationSession.js";
-import RiderLocation from "../models/riderLocation.js";
+import RiderLocation from "../models/RiderLocation.js";
 
 /**
  * POST /api/tracking/start/:riderId
