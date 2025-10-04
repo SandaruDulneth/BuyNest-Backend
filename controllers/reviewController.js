@@ -1,6 +1,6 @@
 import Review from "../models/review.js";
 import User from "../models/user.js";
-import nodemailer from "nodemailer";
+import sgMail from "@sendgrid/mail";
 
 export async function addReview(req, res) {
     try {
@@ -52,44 +52,74 @@ export async function getReviews(req, res) {
     }
 }
 
-// 🔹 NEW: send a meaningful email reply for good reviews (rating >=4)
+
+
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
 export async function sendReply(req, res) {
-    try {
-        const { email, usersName, rating } = req.body;
-        if (!email || !usersName) {
-            return res.status(400).json({ message: "Missing email or name" });
-        }
+  try {
+    
+    const { email, usersName, rating, replyMessage, message } = req.body;
+    const finalMessage = replyMessage || message;
 
-        // Configure transporter (set env vars for real credentials)
-        const transporter = nodemailer.createTransport({
-            service: "gmail",
-            auth: {
-                user: process.env.MAIL_USER,
-                pass: process.env.MAIL_PASS,
-            },
-        });
-
-        let subject = "Thank you for your review!";
-        let text = `Hi ${usersName},\n\nThank you for sharing your feedback with us.`;
-
-        if (Number(rating) >= 4) {
-            text += ` We’re thrilled you enjoyed your experience and truly appreciate your positive review.`;
-        } else {
-            text += ` We value your input and will work hard to improve based on your suggestions.`;
-        }
-
-        text += `\n\nBest regards,\nBuyNest Team`;
-
-        await transporter.sendMail({
-            from: process.env.MAIL_USER,
-            to: email,
-            subject,
-            text,
-        });
-
-        res.json({ message: "Reply email sent successfully" });
-    } catch (err) {
-        console.error("Error sending reply:", err);
-        res.status(500).json({ message: "Failed to send reply", error: err.message });
+    if (!email || !usersName) {
+      return res.status(400).json({ message: "Missing email or name" });
     }
+    if (!finalMessage) {
+      return res.status(400).json({ message: "Reply message is required" });
+    }
+
+   
+    let subject = "Thank you for your review!";
+    let text = `Hi ${usersName},\n\n${finalMessage}\n\n`;
+
+    if (Number(rating) >= 4) {
+      text += `We're thrilled you enjoyed your experience — thank you for your positive review!\n\n`;
+    } else {
+      text += `We value your feedback and will work hard to improve based on your suggestions.\n\n`;
+    }
+
+    text += `Best regards,\nBuyNest Team`;
+
+   
+    const html = `
+      <div style="font-family: Arial, sans-serif; color: #333; background: #f9f9f9; padding: 16px; border-radius: 8px;">
+        <h2 style="color: #059669; margin-top: 0;">BuyNest</h2>
+        <p>Hi <b>${usersName}</b>,</p>
+        <p>${finalMessage}</p>
+        ${
+          Number(rating) >= 4
+            ? `<p style="color:#16a34a;">We're thrilled you enjoyed your experience — thank you for your positive review!</p>`
+            : `<p style="color:#ca8a04;">We value your feedback and will work hard to improve based on your suggestions.</p>`
+        }
+        <br/>
+        <p>Best regards,<br/><b>BuyNest Team</b></p>
+      </div>
+    `;
+
+    
+    const msg = {
+      to: email,
+      from: process.env.SENDGRID_FROM,
+      subject,
+      text,
+      html,
+    };
+
+    const [response] = await sgMail.send(msg);
+
+    if (response.statusCode === 202) {
+      console.log("Reply email sent successfully to:", email);
+      res.json({ message: "Reply email sent successfully" });
+    } else {
+      console.error("SendGrid response code:", response.statusCode);
+      res.status(500).json({ message: "Failed to send reply email" });
+    }
+  } catch (err) {
+    console.error("Error sending reply:", err);
+    res.status(500).json({
+      message: "Failed to send reply",
+      error: err.message,
+    });
+  }
 }
