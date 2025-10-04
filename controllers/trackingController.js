@@ -23,7 +23,7 @@ export async function startTracking(req, res) {
       });
     }
 
-    const base = process.env.PUBLIC_BASE_URL || "http://localhost:5000";
+    const base = process.env.BACKENDURL || "http://localhost:5000";
     const trackingUrl = `${base}/api/tracking/track/${session.token}`;
 
     res.json({ message: "Tracking enabled", riderId, token: session.token, trackingUrl });

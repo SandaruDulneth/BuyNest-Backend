@@ -24,7 +24,7 @@ const server = http.createServer(app); // ✅ create HTTP server for socket.io
 /* ---------------- Socket.IO setup ---------------- */
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173", // your React dev server
+    origin: process.env.FRONTENDURL, // your React dev server
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -44,7 +44,7 @@ io.on("connection", (socket) => {
 /* ---------------- Middlewares ---------------- */
 app.use(
   cors({
-    origin: "http://localhost:5173", // React dev server
+    origin: process.env.FRONTENDURL, // React dev server
     credentials: true, // allow cookies / headers
   })
 );
@@ -55,7 +55,7 @@ app.use((req, res, next) => {
   if (tokenString != null) {
     const token = tokenString.replace("Bearer ", "");
 
-    jwt.verify(token, "buynest", (err, decoded) => {
+    jwt.verify(token, process.env.JWTKEY, (err, decoded) => {
       if (decoded != null) {
         req.user = decoded;
         next();
@@ -74,7 +74,7 @@ app.use((req, res, next) => {
 /* ---------------- Database ---------------- */
 mongoose
   .connect(
-    "mongodb+srv://sandaru:1234@clusterstorage.2vezela.mongodb.net/?retryWrites=true&w=majority&appName=ClusterStorage"
+    process.env.MONGODB_URL
   )
   .then(() => console.log("✅ Connected to the database"))
   .catch((e) => {
