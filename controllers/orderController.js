@@ -2,6 +2,25 @@ import Order from "../models/order.js";
 import Product from "../models/product.js";
 import { isAdmin } from "./userController.js";
 import QRCode from "qrcode";  // ✅ QR code generator
+import { sendSMS } from "../utils/sendSMS.js";
+
+// ✅ Normalize Sri Lankan numbers (Twilio E.164 format)
+function normalizePhone(number) {
+  if (!number) return null;
+
+  // remove spaces, dashes, or parentheses
+  number = number.replace(/\s|[-()]/g, "");
+
+  // if it starts with 0, replace with +94
+  if (number.startsWith("0")) return "+94" + number.substring(1);
+
+  // if it already starts with +, keep as is
+  if (number.startsWith("+")) return number;
+
+  // fallback (assume Sri Lanka if no prefix)
+  return "+94" + number;
+}
+
 
 /* -------------------- CREATE ORDER -------------------- */
 export async function createOrder(req, res) {
@@ -147,32 +166,53 @@ export async function getMyOrders(req, res) {
 
 /* -------------------- UPDATE ORDER STATUS (Admin only) -------------------- */
 export async function updateOrderStatus(req, res) {
-    if (!isAdmin(req)) {
-        return res.status(403).json({
-            message: "You are not authorized to update order status",
-        });
+  if (!isAdmin(req)) {
+    return res.status(403).json({
+      message: "You are not authorized to update order status",
+    });
+  }
+
+  try {
+    const { orderId, status } = req.params;
+
+    const order = await Order.findOne({ orderId });
+    if (!order) {
+      return res.status(404).json({ message: "Order not found" });
     }
-    try {
-        const { orderId, status } = req.params;
 
-        await Order.updateOne({ orderId }, { status });
+    await Order.updateOne({ orderId }, { status });
 
-        if (status === "delivered" || status === "completed") {
-            const Delivery = (await import("../models/delivery.js")).default;
-            await Delivery.updateOne({ orderId }, { status: "completed" });
-        }
+    // ✅ SMS logic
+    if (order.deliveryMethod === "pickup" && status === "processing") {
+      await sendSMS(normalizePhone(order.phone), `Hi ${order.name}, your order ${orderId} BuyNest is now processed.You can collect your order in approximately 10 minutes.Thank you for shopping with BuyNest!`);
 
-        // ✅ emit socket update
-        const io = req.app.get("io");
-        io.emit("orderUpdated", { orderId, status });
-
-        res.json({ message: "Order status updated successfully" });
-    } catch (e) {
-        res.status(500).json({
-            message: "Failed to update order status",
-            error: e.message,
-        });
     }
+
+    if (order.deliveryMethod === "home" && status === "completed") {
+      await sendSMS(
+       normalizePhone(order.phone),
+        `Hi ${order.name}, your order ${orderId}  is ready for delivered.Thank you for shopping with BuyNest!`
+      );
+    }
+  
+  
+
+    // ✅ Also handle delivery record and socket updates
+    if (status === "delivered" || status === "completed") {
+      const Delivery = (await import("../models/delivery.js")).default;
+      await Delivery.updateOne({ orderId }, { status: "completed" });
+    }
+
+    const io = req.app.get("io");
+    io.emit("orderUpdated", { orderId, status });
+
+    res.json({ message: "Order status updated successfully" });
+  } catch (e) {
+    res.status(500).json({
+      message: "Failed to update order status",
+      error: e.message,
+    });
+  }
 }
 
 /* -------------------- VERIFY ORDER PAGE -------------------- */
