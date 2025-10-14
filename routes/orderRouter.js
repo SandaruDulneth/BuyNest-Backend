@@ -5,7 +5,8 @@ import {
     getOrders, 
     updateOrderStatus, 
     verifyOrderPage, 
-    verifyOrderAccept 
+    verifyOrderAccept,
+    updateOrderPaymentStatus
 } from "../controllers/orderController.js";
 
 const orderRouter = express.Router();
@@ -24,6 +25,8 @@ orderRouter.get("/my-orders", getMyOrders);
 // Admin updates order status (e.g., pending → delivered/completed)
 orderRouter.put("/:orderId/:status", updateOrderStatus);
 
+// ✅ Update payment status (e.g., unpaid → paid or COD)
+orderRouter.put("/:orderId/payment/:paymentStatus", updateOrderPaymentStatus);
 /* ---------------- QR CODE VERIFICATION ROUTES ---------------- */
 
 // Show verification page when user scans QR

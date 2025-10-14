@@ -133,6 +133,35 @@ export async function createOrder(req, res) {
     }
 }
 
+// ✅ Update payment status (paid / COD)
+export const updateOrderPaymentStatus = async (req, res) => {
+  try {
+    const { orderId, paymentStatus } = req.params;
+
+    const order = await Order.findOneAndUpdate(
+      { orderId },
+      { paymentStatus },
+      { new: true }
+    );
+
+    if (!order) return res.status(404).json({ message: "Order not found" });
+
+    // Optionally emit live update via socket.io if available
+    if (req.io) {
+      req.io.emit("orderUpdated", {
+        orderId,
+        paymentStatus,
+      });
+    }
+
+    res.json({ message: `Payment status updated to ${paymentStatus}`, order });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to update payment status" });
+  }
+};
+
+
 /* -------------------- GET ORDERS -------------------- */
 export async function getOrders(req, res) {
     if (!req.user) {
@@ -198,10 +227,15 @@ export async function updateOrderStatus(req, res) {
   
 
     // ✅ Also handle delivery record and socket updates
-    if (status === "delivered" || status === "completed") {
-      const Delivery = (await import("../models/delivery.js")).default;
-      await Delivery.updateOne({ orderId }, { status: "completed" });
-    }
+if (status === "delivered" || status === "completed") {
+  const Delivery = (await import("../models/delivery.js")).default;
+  await Delivery.updateOne({ orderId }, { status: "completed" });
+
+  // ✅ Unblock the rider properly
+  const { handleOrderDelivered } = await import("./deliveryController.js");
+  await handleOrderDelivered(orderId);
+}
+
 
     const io = req.app.get("io");
     io.emit("orderUpdated", { orderId, status });

@@ -30,6 +30,11 @@ const orderSchema = mongoose.Schema({
         type: String,
         required: true, // "pickup" or "home"
     },
+    paymentStatus: {
+        type: String,
+        enum: ["unpaid", "paid", "COD"],
+        default: "unpaid",
+    },
     total: {
         type: Number,
         required: true,

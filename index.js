@@ -15,6 +15,7 @@ import faqRouter from "./routes/faqRouter.js";
 import orderRouter from "./routes/orderRouter.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import trackingRouter from "./routes/tracking.js";
+import paymentRouter from "./routes/paymentRouter.js";
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -92,6 +93,7 @@ app.use("/api/faqs",faqRouter)
 app.use("/api/orders",orderRouter)    
 app.use("/api/dashboard", dashboardRoutes)
 app.use("/api/tracking", trackingRouter);
+app.use("/api/payment", paymentRouter);
 /* ---------------- Start Server ---------------- */
 const PORT = 5000;
 server.listen(PORT, () => {
