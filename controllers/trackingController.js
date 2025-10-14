@@ -1,17 +1,25 @@
 import crypto from "crypto";
+import sgMail from "@sendgrid/mail";
+import Rider from "../models/rider.js";
 import LocationSession from "../models/LocationSession.js";
 import RiderLocation from "../models/RiderLocation.js";
 
+// ✅ Initialize SendGrid
+sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
 /**
  * POST /api/tracking/start/:riderId
- * Admin-only: create (or reuse active) session and return share link
+ * Admin-only: create (or reuse active) session, send tracking email to rider
  */
 export async function startTracking(req, res) {
   try {
-    // Optional: protect with admin check if you want
-    // if (!req.user || req.user.role !== 'admin') return res.status(403).json({message:'Forbidden'});
-
     const { riderId } = req.params;
+
+    // Find rider
+    const rider = await Rider.findOne({ riderId });
+    if (!rider) {
+      return res.status(404).json({ message: "Rider not found" });
+    }
 
     // Reuse active session if exists
     let session = await LocationSession.findOne({ riderId, active: true });
@@ -23,12 +31,53 @@ export async function startTracking(req, res) {
       });
     }
 
+    // ✅ Generate tracking link
     const base = process.env.BACKENDURL || "http://localhost:5000";
     const trackingUrl = `${base}/api/tracking/track/${session.token}`;
 
-    res.json({ message: "Tracking enabled", riderId, token: session.token, trackingUrl });
+    // ✅ Send email to rider
+    const msg = {
+      to: rider.email,
+      from: process.env.SENDGRID_FROM,
+      subject: "📍 Live Tracking Started - BuyNest Delivery",
+      html: `
+        <div style="font-family:Arial,sans-serif;line-height:1.5;color:#333">
+          <h2 style="color:#10b981;">Hello ${rider.Name},</h2>
+          <p>Your live tracking session has started. Click below to open your tracking dashboard:</p>
+          <p>
+            <a href="${trackingUrl}" 
+              style="background:#10b981;color:#fff;padding:10px 20px;
+              text-decoration:none;border-radius:8px;display:inline-block;">
+              Open Live Tracking
+            </a>
+          </p>
+          <p style="margin-top:10px">
+            Or copy this link: <br/>
+            <a href="${trackingUrl}">${trackingUrl}</a>
+          </p>
+          <hr style="margin:16px 0;border:none;border-top:1px solid #ddd"/>
+          <p style="font-size:13px;color:#555">
+            Keep this page open during your delivery to update your live location.<br/>
+            BuyNest Delivery System.
+          </p>
+        </div>
+      `,
+    };
+
+    await sgMail.send(msg);
+    console.log(`📧 Tracking email sent to ${rider.email}`);
+
+    res.json({
+      message: "Tracking started and email sent successfully",
+      riderId,
+      trackingUrl,
+    });
   } catch (err) {
-    res.status(500).json({ message: "Failed to start tracking", error: err.message });
+    console.error("Start Tracking Error:", err);
+    res.status(500).json({
+      message: "Failed to start tracking",
+      error: err.message,
+    });
   }
 }
 
@@ -46,27 +95,48 @@ export async function stopTracking(req, res) {
     session.endedAt = new Date();
     await session.save();
 
+    // (Optional) notify rider via email
+    const rider = await Rider.findOne({ riderId });
+    if (rider) {
+      const msg = {
+        to: rider.email,
+        from: process.env.SENDGRID_FROM,
+        subject: "🛑 Tracking Stopped - BuyNest Delivery",
+        html: `
+          <div style="font-family:Arial,sans-serif;line-height:1.5;color:#333">
+            <h2 style="color:#e11d48;">Hello ${rider.Name},</h2>
+            <p>Your live tracking session has been stopped by the administrator.</p>
+            <p>Thank you for completing your delivery!</p>
+            <hr style="margin:16px 0;border:none;border-top:1px solid #ddd"/>
+            <p style="font-size:13px;color:#555">BuyNest Delivery Team</p>
+          </div>
+        `,
+      };
+      await sgMail.send(msg);
+      console.log(`📧 Stop tracking email sent to ${rider.email}`);
+    }
+
     res.json({ message: "Tracking stopped", riderId });
   } catch (err) {
-    res.status(500).json({ message: "Failed to stop tracking", error: err.message });
+    res.status(500).json({
+      message: "Failed to stop tracking",
+      error: err.message,
+    });
   }
 }
 
 /**
  * GET /api/tracking/track/:token
- * Public minimal page the rider opens. It streams geolocation to /api/tracking/ping/:token
+ * Public: serves the HTML page the rider opens
  */
 export async function serveTrackerPage(req, res) {
   try {
     const { token } = req.params;
     const session = await LocationSession.findOne({ token, active: true });
     if (!session) {
-      return res
-        .status(404)
-        .send("<h2>❌ Invalid or expired tracking link</h2>");
+      return res.status(404).send("<h2>❌ Invalid or expired tracking link</h2>");
     }
 
-    // Simple page with watchPosition → POST to ping endpoint
     const html = `
 <!DOCTYPE html>
 <html>
@@ -122,7 +192,7 @@ export async function serveTrackerPage(req, res) {
 
     function start() {
       if (!navigator.geolocation) {
-        log('Geolocation is not supported by this browser.', 'err');
+        log('Geolocation not supported', 'err');
         return;
       }
       log('Requesting location permission...');
@@ -152,7 +222,7 @@ export async function serveTrackerPage(req, res) {
 
 /**
  * POST /api/tracking/ping/:token
- * Public: receives GPS pings from rider page → stores latest → broadcasts via Socket.IO
+ * Public: receives GPS updates → stores + broadcasts via socket.io
  */
 export async function pingLocation(req, res) {
   try {
@@ -160,9 +230,9 @@ export async function pingLocation(req, res) {
     const { lat, lng, accuracy, heading, speed } = req.body;
 
     const session = await LocationSession.findOne({ token, active: true });
-    if (!session) return res.status(404).json({ message: "Invalid or expired session" });
+    if (!session)
+      return res.status(404).json({ message: "Invalid or expired session" });
 
-    // Upsert latest location for rider
     const doc = await RiderLocation.findOneAndUpdate(
       { riderId: session.riderId },
       {
@@ -172,38 +242,40 @@ export async function pingLocation(req, res) {
         accuracy,
         heading,
         speed,
-        timestamp: new Date()
+        timestamp: new Date(),
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, new: true }
     );
 
-    // Broadcast to all connected dashboards
     const io = req.app.get("io");
     io.emit("riderLocation", {
       riderId: doc.riderId,
       lat: doc.lat,
       lng: doc.lng,
-      accuracy: doc.accuracy,
-      heading: doc.heading,
-      speed: doc.speed,
       timestamp: doc.timestamp,
     });
 
     res.json({ ok: true });
   } catch (err) {
-    res.status(500).json({ message: "Failed to record location", error: err.message });
+    res.status(500).json({
+      message: "Failed to record location",
+      error: err.message,
+    });
   }
 }
 
 /**
  * GET /api/tracking/locations
- * Admin: list latest locations for all riders
+ * Admin: fetch all latest rider locations
  */
 export async function getLatestLocations(req, res) {
   try {
     const list = await RiderLocation.find().lean();
     res.json(list);
   } catch (err) {
-    res.status(500).json({ message: "Failed to fetch locations", error: err.message });
+    res.status(500).json({
+      message: "Failed to fetch locations",
+      error: err.message,
+    });
   }
 }

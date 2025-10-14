@@ -1,21 +1,16 @@
 import mongoose from "mongoose";
 
-const riderLocationSchema = new mongoose.Schema(
-  {
-    riderId: { 
-      type: String, 
-      required: true, 
-      // ⚠️ Removed `index: true` to prevent duplicate index warnings
-    },
-    lat: { type: Number, required: true },
-    lng: { type: Number, required: true },
-    accuracy: { type: Number },
-    heading: { type: Number },
-    speed: { type: Number },
-    timestamp: { type: Date, default: Date.now },
-  },
-  { timestamps: true }
-);
+
+const riderLocationSchema = new mongoose.Schema({
+  riderId: { type: String, required: true },
+  lat: { type: Number, required: true },
+  lng: { type: Number, required: true },
+  accuracy: { type: Number },
+  heading: { type: Number },
+  speed: { type: Number },
+  timestamp: { type: Date, default: Date.now },
+}, { timestamps: true });
+
 
 /**
  * ✅ Ensure only the latest location per rider is stored.
