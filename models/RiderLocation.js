@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const riderLocationSchema = new mongoose.Schema({
-  riderId: { type: String, required: true, index: true },
+  riderId: { type: String, required: true },
   lat: { type: Number, required: true },
   lng: { type: Number, required: true },
   accuracy: { type: Number },
