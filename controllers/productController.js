@@ -2,50 +2,45 @@ import Product from "../models/product.js";
 import { isAdmin } from "./userController.js";
 
 export async function saveProduct(req, res) {
-    if (!isAdmin(req)) {
-        return res.status(403).json({ message: "Unauthorized" });
+  if (!isAdmin(req)) return res.status(403).json({ message: "Unauthorized" });
+
+  try {
+    const raw = (req.body.productId || "").trim();
+    if (!raw) return res.status(400).json({ message: "productId is required" });
+
+    if (!/^\d+$/.test(raw)) {
+      return res.status(400).json({ message: "productId must contain digits only" });
     }
 
-    try {
-        if (!req.body.productId) {
-            return res.status(400).json({ message: "productId is required" });
-        }
+    const newProductId = "BYNPD" + raw.padStart(5, "0");
 
-           const numPart = (req.body.productId || "").trim();
-
-         if (String(parseInt(numPart, 10)) !== numPart) {
-          return res.status(400).json({ message: "productId must be digits only" });
-        }
-        const newProductId = "BYNPD" + numPart.padStart(5, "0");
-
-        const existing = await Product.findOne({ productId: req.body.productId });
-        if (existing) {
-            return res.status(400).json({ message: "productId already exists" });
-        }
-
-
-        const product = new Product({
-            productId: newProductId, 
-            name: req.body.name,
-            categories: req.body.categories,
-            description: req.body.description,
-            images: req.body.images,
-            labelledPrice: req.body.labelledPrice,
-            price: req.body.price,
-            stock: req.body.stock,
-            isAvailable: req.body.isAvailable
-        });
-
-        await product.save();
-        res.json({ message: "Product added successfully" });
-
-    } catch (err) {
-        console.error("Save error:", err);
-        res.status(500).json({
-            message: "Failed to add product",
-            error: err.message
-        });
+    const existing = await Product.findOne({ productId: newProductId });
+    if (existing) {
+      return res.status(400).json({ message: "productId already exists" });
     }
+
+    const product = new Product({
+      productId: newProductId,
+      name: req.body.name,
+      categories: req.body.categories,
+      description: req.body.description,
+      images: req.body.images,
+      labelledPrice: req.body.labelledPrice,
+      price: req.body.price,
+      stock: req.body.stock,
+      isAvailable: req.body.isAvailable
+    });
+
+    await product.save();
+    res.json({ message: "Product added successfully" });
+
+  } catch (err) {
+    if (err?.code === 11000) {
+      return res.status(400).json({ message: "productId already exists" });
+    }
+    console.error("Save error:", err);
+    res.status(500).json({ message: "Failed to add product", error: err.message });
+  }
 }
 
 export async function getProducts(req, res) {
