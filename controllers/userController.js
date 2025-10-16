@@ -460,7 +460,7 @@ export async function loginWithGoogle(req,res){
         await newUser.save();
         const token = jwt.sign(
             {
-                userId: newuser.userId,
+                userId: newUser.userId,
                 email: newUser.email,
                 firstName: newUser.firstName,
                 lastName: newUser.lastName,
